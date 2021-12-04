@@ -6,11 +6,11 @@ import (
 	"github.com/dwarkeshsp/astar"
 )
 
-func plan(agents []Agent) map[Agent][]astar.Node {
+func plan(agents []Agent, obstacles []astar.Node) map[Agent][]astar.Node {
 	open := &CTree{queue: make([]*CTNode, 100)}
 	heap.Init(open)
 
-	root := createRootNode(agents)
+	root := createRootNode(agents, obstacles)
 	heap.Push(open, root)
 
 	for open.Len() > 0 {

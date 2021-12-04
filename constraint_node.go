@@ -17,11 +17,11 @@ type CTNode struct {
 	cost       int
 }
 
-func createRootNode(agents []Agent) *CTNode {
+func createRootNode(agents []Agent, obstacles []astar.Node) *CTNode {
 	n := CTNode{}
 	n.constaints = make(map[Agent][]astar.Node)
 	for _, agent := range agents {
-		n.constaints[agent] = []astar.Node{}
+		n.constaints[agent] = obstacles
 	}
 	n.solution = make(map[Agent][]astar.Node)
 	n.findSolution()

@@ -86,7 +86,6 @@ func (n *CTNode) findFirstConflict() (*astar.Node, *Agent, *Agent) {
 
 	select {
 	case result := <-conflictsChan:
-		println("hererrre")
 		return result.n, &agents[result.aIndex], &agents[result.bIndex]
 	case <-time.After(3 * time.Second):
 		return nil, nil, nil
@@ -101,14 +100,7 @@ func findPathConflict(conflictsChan *chan *ConflictResult, finishedChan *chan bo
 	}
 
 	for i := 0; i < size; i++ {
-		// select {
-		// case <-*finishedChan:
-		// 	return
-		// default:
-		// }
 		if a[i].X == b[i].X && a[i].Y == b[i].Y {
-			println("CONFLICT FOUND")
-			println(a[i].X, a[i].Y, b[i].X, b[i].Y)
 			select {
 			case *conflictsChan <- &ConflictResult{&a[i], aIndex, bIndex}:
 			default:
@@ -116,15 +108,7 @@ func findPathConflict(conflictsChan *chan *ConflictResult, finishedChan *chan bo
 			break
 		}
 	}
-
-	// <-*finishedChan
 }
-
-// func sendFinished(workers int, finishedChan *chan bool) {
-// 	for i := 0; i < workers; i++ {
-// 		*finishedChan <- true
-// 	}
-// }
 
 func (n *CTNode) fork(conflictNode *astar.Node, restrictedAgent *Agent) *CTNode {
 	newNode := &CTNode{}

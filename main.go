@@ -24,21 +24,23 @@ func main() {
 	agents := parseAgents(*agentsFile)
 	obstacles := parseObstacles(*obstaclesFile)
 
-	solution := plan(agents, obstacles)
+	solution, cost := plan(agents, obstacles)
 
+	fmt.Println("Cost: ", cost)
 	printAgentNodeMap(&solution)
 }
 
 func printAgentNodeMap(nodeMap *map[Agent][]astar.Node) {
 	if nodeMap != nil {
-		// i := 0
-		// for _, path := range *nodeMap {
-		// 	fmt.Printf("Agent %d path\n", i)
-		// 	for _, node := range path {
-		// 		fmt.Println(node)
-		// 	}
-		// 	i++
-		// }
+		i := 0
+		for _, path := range *nodeMap {
+			fmt.Printf("Agent %d path: ", i)
+			for _, node := range path {
+				fmt.Printf(" {%d,%d} ", node.X, node.Y)
+			}
+			fmt.Printf("\n")
+			i++
+		}
 	} else {
 		fmt.Println("No solution found")
 	}

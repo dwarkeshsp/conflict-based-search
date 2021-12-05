@@ -4,35 +4,34 @@ import (
 	"sync"
 )
 
-type CTree struct {
-	queue []*CTNode
-	mu    *sync.Mutex
-}
+type CTree []*CTNode
 
-func (t CTree) Len() int { return len(t.queue) }
+var mu sync.Mutex
 
-func (t CTree) Less(i, j int) bool { return t.queue[i].cost < t.queue[j].cost }
+func (t CTree) Len() int { return len(t) }
+
+func (t CTree) Less(i, j int) bool { return t[i].cost < t[j].cost }
 
 func (t CTree) Swap(i, j int) {
-	t.mu.Lock()
-	t.queue[i], t.queue[j] = t.queue[j], t.queue[i]
-	t.mu.Unlock()
+	mu.Lock()
+	t[i], t[j] = t[j], t[i]
+	mu.Unlock()
 }
 
 func (t *CTree) Push(x interface{}) {
-	t.mu.Lock()
+	mu.Lock()
 	node := x.(*CTNode)
-	t.queue = append(t.queue, node)
-	t.mu.Unlock()
+	*t = append(*t, node)
+	mu.Unlock()
 }
 
 func (t *CTree) Pop() interface{} {
-	t.mu.Lock()
-	old := t.queue
+	mu.Lock()
+	old := *t
 	n := len(old)
 	node := old[n-1]
 	old[n-1] = nil // avoid memory leak
-	t.queue = old[0 : n-1]
-	t.mu.Unlock()
+	*t = old[0 : n-1]
+	mu.Unlock()
 	return node
 }

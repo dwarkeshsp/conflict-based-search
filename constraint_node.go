@@ -1,7 +1,7 @@
 package main
 
 import (
-	"time"
+	"sync"
 
 	"github.com/dwarkeshsp/astar"
 )
@@ -18,17 +18,19 @@ type CTNode struct {
 }
 
 func createRootNode(agents []Agent, obstacles []astar.Node) *CTNode {
-	n := CTNode{}
+	n := &CTNode{}
 	n.constaints = make(map[Agent][]astar.Node)
 	for _, agent := range agents {
 		n.constaints[agent] = obstacles
 	}
 	n.solution = make(map[Agent][]astar.Node)
-	n.findSolution()
-	return &n
+	if !n.findSolution() {
+		return nil
+	}
+	return n
 }
 
-func (n *CTNode) findSolution() {
+func (n *CTNode) findSolution() bool {
 	for agent, obstacles := range n.constaints {
 		aConfig := astar.Config{
 			GridWidth:    GRID_SIZE,
@@ -39,9 +41,13 @@ func (n *CTNode) findSolution() {
 		algo, _ := astar.New(aConfig)
 		// TODO: deal with no solution found
 		agentPath, _ := algo.FindPath(agent.start, agent.end)
+		if agentPath == nil {
+			return false
+		}
 		n.solution[agent] = agentPath
 	}
 	n.storeCost()
+	return true
 }
 
 func (n *CTNode) storeCost() {
@@ -59,7 +65,7 @@ type ConflictResult struct {
 }
 
 func (n *CTNode) findFirstConflict() (*astar.Node, *Agent, *Agent) {
-	conflictsChan := make(chan ConflictResult)
+	conflictsChan := make(chan *ConflictResult)
 
 	agents := make([]Agent, len(n.solution))
 
@@ -68,36 +74,48 @@ func (n *CTNode) findFirstConflict() (*astar.Node, *Agent, *Agent) {
 		agents[i] = agent
 		i++
 	}
+	println(8)
+
+	var wg sync.WaitGroup
 
 	for i := 0; i < len(agents)-1; i++ {
 		for j := i + 1; j < len(agents); j++ {
-			go findPathConflict(conflictsChan, n.solution[agents[i]], n.solution[agents[j]], i, j)
+			wg.Add(1)
+			go findPathConflict(&wg, conflictsChan, n.solution[agents[i]], n.solution[agents[j]], i, j)
 		}
 	}
+
+	wg.Wait()
 	select {
 	case result := <-conflictsChan:
 		return result.n, &agents[result.aIndex], &agents[result.bIndex]
-	// TODO: find optimal value for timeout
-	case <-time.After(time.Second):
+	default:
 		return nil, nil, nil
-	}
 
+	}
 }
 
-func findPathConflict(conflictsChan chan ConflictResult, a []astar.Node, b []astar.Node, aIndex int, bIndex int) {
+func findPathConflict(wg *sync.WaitGroup, conflictsChan chan *ConflictResult, a []astar.Node, b []astar.Node, aIndex int, bIndex int) {
+	defer wg.Done()
+
 	size := len(a)
-	if size < len(b) {
+	if size > len(b) {
 		size = len(b)
 	}
+
 	for i := 0; i < size; i++ {
 		if a[i].X == b[i].X && a[i].Y == b[i].Y {
-			conflictsChan <- ConflictResult{&a[i], aIndex, bIndex}
+			select {
+			case conflictsChan <- &ConflictResult{&a[i], aIndex, bIndex}:
+			default:
+			}
+			return
 		}
 	}
 }
 
 func (n *CTNode) fork(conflictNode *astar.Node, restrictedAgent *Agent) *CTNode {
-	newNode := CTNode{}
+	newNode := &CTNode{}
 	newNode.constaints = make(map[Agent][]astar.Node)
 	for agent, restrictions := range n.constaints {
 		newRestrictions := make([]astar.Node, len(restrictions))
@@ -107,6 +125,8 @@ func (n *CTNode) fork(conflictNode *astar.Node, restrictedAgent *Agent) *CTNode 
 	newNode.constaints[*restrictedAgent] = append(newNode.constaints[*restrictedAgent], *conflictNode)
 
 	newNode.solution = make(map[Agent][]astar.Node)
-	newNode.findSolution()
-	return &newNode
+	if !newNode.findSolution() {
+		return nil
+	}
+	return newNode
 }

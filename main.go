@@ -26,14 +26,21 @@ func main() {
 
 	solution := plan(agents, obstacles)
 
-	if solution != nil {
+	printAgentNodeMap(&solution)
+}
+
+func printAgentNodeMap(nodeMap *map[Agent][]astar.Node) {
+	if nodeMap != nil {
 		i := 0
-		for _, path := range solution {
+		for _, path := range *nodeMap {
 			fmt.Printf("Agent %d path\n", i)
 			for _, node := range path {
 				fmt.Println(node)
 			}
+			i++
 		}
+	} else {
+		fmt.Println("No solution found")
 	}
 }
 
@@ -70,7 +77,6 @@ func createScanner(filename string) *bufio.Scanner {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer file.Close()
 
 	return bufio.NewScanner(file)
 }

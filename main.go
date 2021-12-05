@@ -31,14 +31,14 @@ func main() {
 
 func printAgentNodeMap(nodeMap *map[Agent][]astar.Node) {
 	if nodeMap != nil {
-		i := 0
-		for _, path := range *nodeMap {
-			fmt.Printf("Agent %d path\n", i)
-			for _, node := range path {
-				fmt.Println(node)
-			}
-			i++
-		}
+		// i := 0
+		// for _, path := range *nodeMap {
+		// 	fmt.Printf("Agent %d path\n", i)
+		// 	for _, node := range path {
+		// 		fmt.Println(node)
+		// 	}
+		// 	i++
+		// }
 	} else {
 		fmt.Println("No solution found")
 	}

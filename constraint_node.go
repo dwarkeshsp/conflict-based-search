@@ -1,7 +1,7 @@
 package main
 
 import (
-	"sync"
+	"time"
 
 	"github.com/dwarkeshsp/astar"
 )
@@ -66,6 +66,7 @@ type ConflictResult struct {
 
 func (n *CTNode) findFirstConflict() (*astar.Node, *Agent, *Agent) {
 	conflictsChan := make(chan *ConflictResult)
+	finishedChan := make(chan bool)
 
 	agents := make([]Agent, len(n.solution))
 
@@ -74,29 +75,25 @@ func (n *CTNode) findFirstConflict() (*astar.Node, *Agent, *Agent) {
 		agents[i] = agent
 		i++
 	}
-	println(8)
 
-	var wg sync.WaitGroup
-
+	workers := 0
 	for i := 0; i < len(agents)-1; i++ {
 		for j := i + 1; j < len(agents); j++ {
-			wg.Add(1)
-			go findPathConflict(&wg, conflictsChan, n.solution[agents[i]], n.solution[agents[j]], i, j)
+			workers++
+			go findPathConflict(&conflictsChan, &finishedChan, n.solution[agents[i]], n.solution[agents[j]], i, j)
 		}
 	}
 
-	wg.Wait()
 	select {
 	case result := <-conflictsChan:
+		println("hererrre")
 		return result.n, &agents[result.aIndex], &agents[result.bIndex]
-	default:
+	case <-time.After(3 * time.Second):
 		return nil, nil, nil
-
 	}
 }
 
-func findPathConflict(wg *sync.WaitGroup, conflictsChan chan *ConflictResult, a []astar.Node, b []astar.Node, aIndex int, bIndex int) {
-	defer wg.Done()
+func findPathConflict(conflictsChan *chan *ConflictResult, finishedChan *chan bool, a []astar.Node, b []astar.Node, aIndex int, bIndex int) {
 
 	size := len(a)
 	if size > len(b) {
@@ -104,15 +101,30 @@ func findPathConflict(wg *sync.WaitGroup, conflictsChan chan *ConflictResult, a 
 	}
 
 	for i := 0; i < size; i++ {
+		// select {
+		// case <-*finishedChan:
+		// 	return
+		// default:
+		// }
 		if a[i].X == b[i].X && a[i].Y == b[i].Y {
+			println("CONFLICT FOUND")
+			println(a[i].X, a[i].Y, b[i].X, b[i].Y)
 			select {
-			case conflictsChan <- &ConflictResult{&a[i], aIndex, bIndex}:
+			case *conflictsChan <- &ConflictResult{&a[i], aIndex, bIndex}:
 			default:
 			}
-			return
+			break
 		}
 	}
+
+	// <-*finishedChan
 }
+
+// func sendFinished(workers int, finishedChan *chan bool) {
+// 	for i := 0; i < workers; i++ {
+// 		*finishedChan <- true
+// 	}
+// }
 
 func (n *CTNode) fork(conflictNode *astar.Node, restrictedAgent *Agent) *CTNode {
 	newNode := &CTNode{}

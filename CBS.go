@@ -19,7 +19,7 @@ func plan(agents []Agent, obstacles []astar.Node) (map[Agent][]astar.Node, int) 
 	lastPushed := time.Now()
 	resultChan := make(chan *CTNode)
 
-	for open.Len() > 0 || time.Since(lastPushed) < 2*time.Second {
+	for open.Len() > 0 || time.Since(lastPushed) < 4*time.Second {
 		go considerBestNode(&open, resultChan, &lastPushed)
 		select {
 		case result := <-resultChan:
@@ -31,7 +31,7 @@ func plan(agents []Agent, obstacles []astar.Node) (map[Agent][]astar.Node, int) 
 	select {
 	case result := <-resultChan:
 		return result.solution, result.cost
-	case <-time.After(20 * time.Second):
+	case <-time.After(4 * time.Second):
 		return nil, 0
 	}
 
